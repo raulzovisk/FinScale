@@ -8,6 +8,9 @@
     "dev:server": "tsx watch server/index.ts",
     "dev": "concurrently \"npm:dev:client\" \"npm:dev:server\"",
     "build": "vite build",
+    "build:server": "tsc -p tsconfig.server.json",
+    "build:full": "npm run build && npm run build:server",
+    "start": "node dist-server/server/index.js",
     "preview": "vite preview"
   },
   "dependencies": {

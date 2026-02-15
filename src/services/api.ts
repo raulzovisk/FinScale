@@ -1,6 +1,6 @@
 import { Transaction, SummaryData, RecurrentCharge } from '../types';
 
-const API_BASE = '/api';
+const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
 function getAuthHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
