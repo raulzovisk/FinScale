@@ -1,14 +1,16 @@
 import { GoogleGenAI } from "@google/genai";
 import { Transaction } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+const apiKey = process.env.API_KEY || '';
 
 export const getFinancialAdvice = async (transactions: Transaction[]): Promise<string> => {
+    if (!apiKey) return "Configure a chave da API Gemini para receber conselhos financeiros.";
     if (transactions.length === 0) return "Adicione algumas transações para receber conselhos financeiros personalizados.";
 
     const summary = transactions.map(t => `${t.date}: ${t.description} - R$${t.amount} (${t.type})`).join('\n');
 
     try {
+        const ai = new GoogleGenAI({ apiKey });
         const response = await ai.models.generateContent({
             model: 'gemini-3-flash-preview',
             contents: `Analise as seguintes transações financeiras e forneça 3 dicas práticas para economizar ou gerenciar melhor o dinheiro. Seja direto, amigável e use português do Brasil.\n\nTransações:\n${summary}`,
@@ -24,3 +26,4 @@ export const getFinancialAdvice = async (transactions: Transaction[]): Promise<s
         return "Erro ao conectar com o consultor financeiro AI.";
     }
 };
+
