@@ -70,6 +70,4 @@ npm run dev
 | `npm run dev:server` | Inicia apenas o backend              |
 | `npm run build`  | Build de produção do frontend             |
 
-### Endpoints da API
-
 

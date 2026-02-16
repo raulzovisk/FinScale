@@ -4,6 +4,7 @@
         "outDir": "./dist-server",
         "module": "commonjs",
         "target": "es2020",
+        "moduleResolution": "node",
         "rootDir": "."
     },
     "include": [
