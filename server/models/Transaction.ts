@@ -113,6 +113,12 @@ export const TransactionModel = {
     },
 
     async getSummaryByUser(userId: number): Promise<{ totalIncome: number; totalExpense: number; balance: number }> {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth() + 1; // 1-indexed
+        const today = `${year}-${String(month).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const monthStart = `${year}-${String(month).padStart(2, '0')}-01`;
+
         const [rows] = await pool.query<RowDataPacket[]>(`
       SELECT 
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE 0 END), 0) AS totalIncome,
@@ -120,7 +126,9 @@ export const TransactionModel = {
         COALESCE(SUM(CASE WHEN type = 'income' THEN amount ELSE -amount END), 0) AS balance
       FROM transactions
       WHERE users_id = ?
-    `, [userId]);
+        AND date >= ?
+        AND date <= ?
+    `, [userId, monthStart, today]);
 
         return rows[0] as { totalIncome: number; totalExpense: number; balance: number };
     },

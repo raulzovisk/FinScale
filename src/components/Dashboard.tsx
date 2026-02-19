@@ -7,7 +7,9 @@ import {
     Trash2,
     Sparkles,
     Search,
-    ChevronRight
+    ChevronRight,
+    CalendarClock,
+    Calendar
 } from 'lucide-react';
 import { Transaction, Card } from '../types';
 import { getFinancialAdvice } from '../services/geminiService';
@@ -25,8 +27,42 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
     const [isGenerating, setIsGenerating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
+    const today = useMemo(() => {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }, []);
+
+    const currentMonth = useMemo(() => {
+        const d = new Date();
+        return { year: d.getFullYear(), month: d.getMonth() };
+    }, []);
+
+    const monthLabel = useMemo(() => {
+        const d = new Date(currentMonth.year, currentMonth.month);
+        return d.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
+    }, [currentMonth]);
+
+    // Transações do mês atual com data <= hoje
+    const currentTransactions = useMemo(() => {
+        return transactions.filter(t => {
+            const tDate = t.date.substring(0, 10);
+            const tDateObj = new Date(tDate + 'T12:00:00');
+            return tDate <= today &&
+                tDateObj.getMonth() === currentMonth.month &&
+                tDateObj.getFullYear() === currentMonth.year;
+        });
+    }, [transactions, today, currentMonth]);
+
+    // Transações futuras (data > hoje)
+    const futureTransactions = useMemo(() => {
+        return transactions
+            .filter(t => t.date.substring(0, 10) > today)
+            .sort((a, b) => a.date.localeCompare(b.date));
+    }, [transactions, today]);
+
+    // Summary mensal (somente transações até hoje no mês)
     const summary = useMemo(() => {
-        return transactions.reduce((acc, t) => {
+        return currentTransactions.reduce((acc, t) => {
             const amt = Number(t.amount);
             if (t.type === 'income') {
                 acc.income += amt;
@@ -37,9 +73,18 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
             }
             return acc;
         }, { income: 0, expense: 0, balance: 0 });
-    }, [transactions]);
+    }, [currentTransactions]);
 
-    const filteredTransactions = transactions
+    // Total comprometido futuro
+    const futureTotal = useMemo(() => {
+        return futureTransactions.reduce((acc, t) => {
+            if (t.type === 'expense') acc.expense += Number(t.amount);
+            else acc.income += Number(t.amount);
+            return acc;
+        }, { expense: 0, income: 0 });
+    }, [futureTransactions]);
+
+    const filteredTransactions = currentTransactions
         .filter(t => t.description.toLowerCase().includes(searchTerm.toLowerCase()))
         .slice(0, 10);
 
@@ -57,6 +102,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
 
     return (
         <div className="space-y-6 text-gray-900">
+            {/* Month label */}
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar size={16} />
+                <span className="capitalize font-medium">{monthLabel}</span>
+            </div>
+
             {/* Summary Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm transition-transform hover:scale-[1.02]">
@@ -64,7 +115,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                         <div className="p-3 bg-green-100 text-green-600 rounded-xl">
                             <ArrowUpCircle size={24} />
                         </div>
-                        <span className="text-gray-500 font-medium">Entradas</span>
+                        <span className="text-gray-500 font-medium">Entradas do Mês</span>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">R$ {summary.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 </div>
@@ -74,7 +125,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                         <div className="p-3 bg-red-100 text-red-600 rounded-xl">
                             <ArrowDownCircle size={24} />
                         </div>
-                        <span className="text-gray-500 font-medium">Saídas</span>
+                        <span className="text-gray-500 font-medium">Saídas do Mês</span>
                     </div>
                     <p className="text-2xl font-bold text-gray-900">R$ {summary.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 </div>
@@ -84,7 +135,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                         <div className="p-3 bg-white/20 rounded-xl">
                             <Wallet size={24} />
                         </div>
-                        <span className="text-indigo-100 font-bold uppercase text-xs tracking-wider">Saldo Total</span>
+                        <span className="text-indigo-100 font-bold uppercase text-xs tracking-wider">Saldo do Mês</span>
                     </div>
                     <p className="text-3xl font-black">R$ {summary.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                 </div>
@@ -143,11 +194,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                 </div>
             )}
 
-
-            {/* Recent Transactions */}
+            {/* Recent Transactions (current month, date <= today) */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h2 className="text-lg font-bold text-gray-900">Transações Recentes</h2>
+                    <h2 className="text-lg font-bold text-gray-900">Transações do Mês</h2>
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                         <input
@@ -210,7 +260,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                             {filteredTransactions.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
-                                        Nenhuma transação encontrada.
+                                        Nenhuma transação do mês atual encontrada.
                                     </td>
                                 </tr>
                             )}
@@ -218,7 +268,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                     </table>
                 </div>
 
-                {transactions.length > 10 && (
+                {currentTransactions.length > 10 && (
                     <div className="p-4 border-t border-gray-50 text-center">
                         <button
                             onClick={onNavigate}
@@ -229,6 +279,78 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDel
                     </div>
                 )}
             </div>
+
+            {/* Future Transactions */}
+            {futureTransactions.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+                    <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+                                <CalendarClock size={20} />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-gray-900">Próximas</h2>
+                                <p className="text-xs text-gray-400">Transações agendadas para o futuro</p>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            {futureTotal.expense > 0 && (
+                                <p className="text-sm font-bold text-red-500">-R$ {futureTotal.expense.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} comprometido</p>
+                            )}
+                            {futureTotal.income > 0 && (
+                                <p className="text-sm font-bold text-green-500">+R$ {futureTotal.income.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} previsto</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="divide-y divide-gray-100">
+                        {futureTransactions.slice(0, 15).map((t) => (
+                            <div key={t.id} className="px-6 py-4 flex items-center justify-between hover:bg-amber-50/30 transition-colors group">
+                                <div className="flex items-center gap-4">
+                                    <div className={`w-2 h-2 rounded-full ${t.type === 'income' ? 'bg-green-500' : 'bg-red-500'}`} />
+                                    <div>
+                                        <p className="font-medium text-gray-800">
+                                            {t.description}
+                                            {t.installment_total && t.installment_total > 1 && (
+                                                <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">
+                                                    {t.installment_number}/{t.installment_total}
+                                                </span>
+                                            )}
+                                        </p>
+                                        <div className="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+                                            <Calendar size={12} />
+                                            <span>{new Date(t.date).toLocaleDateString('pt-BR')}</span>
+                                            {t.card_name && (
+                                                <>
+                                                    <span>·</span>
+                                                    <span className="text-indigo-500">💳 {t.card_name}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <span className={`font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                                        {t.type === 'income' ? '+' : '-'} R$ {Number(t.amount).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                    </span>
+                                    <button
+                                        onClick={() => onDelete(t.id)}
+                                        className="p-2 text-gray-300 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {futureTransactions.length > 15 && (
+                        <div className="p-4 border-t border-gray-50 text-center">
+                            <p className="text-gray-400 text-xs">+ {futureTransactions.length - 15} transações futuras</p>
+                        </div>
+                    )}
+                </div>
+            )}
         </div >
     );
 };
