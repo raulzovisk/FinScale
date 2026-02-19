@@ -15,7 +15,7 @@ export const TransactionController = {
 
     async store(req: AuthRequest, res: Response): Promise<void> {
         try {
-            const { description, amount, type, category, date } = req.body;
+            const { description, amount, type, category, date, installments, card_id } = req.body;
 
             if (!description || amount == null || !type || !category || !date) {
                 res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
@@ -27,16 +27,32 @@ export const TransactionController = {
                 return;
             }
 
-            const transaction = await TransactionModel.create({
-                users_id: req.userId!,
-                description,
-                amount: parseFloat(amount),
-                type,
-                category,
-                date,
-            });
+            const numInstallments = parseInt(installments) || 1;
 
-            res.status(201).json(transaction);
+            if (numInstallments > 1) {
+                const transactions = await TransactionModel.createInstallments({
+                    users_id: req.userId!,
+                    description,
+                    totalAmount: parseFloat(amount),
+                    type,
+                    category,
+                    date,
+                    installments: numInstallments,
+                    card_id: card_id ? parseInt(card_id) : undefined,
+                });
+                res.status(201).json(transactions);
+            } else {
+                const transaction = await TransactionModel.create({
+                    users_id: req.userId!,
+                    description,
+                    amount: parseFloat(amount),
+                    type,
+                    category,
+                    date,
+                    card_id: card_id ? parseInt(card_id) : undefined,
+                });
+                res.status(201).json(transaction);
+            }
         } catch (error) {
             console.error('Erro ao criar transação:', error);
             res.status(500).json({ message: 'Erro interno ao criar transação.' });

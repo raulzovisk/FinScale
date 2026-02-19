@@ -220,9 +220,66 @@ function initTelegramBot(token) {
             for (const t of last5) {
                 const icon = t.type === 'income' ? '🟢' : '🔴';
                 const date = new Date(t.date).toLocaleDateString('pt-BR');
-                text += `${icon} *${t.description}*\n   R$ ${Number(t.amount).toFixed(2)} | ${t.category} | ${date}\n\n`;
+                const installmentLabel = t.installment_total && t.installment_total > 1 ? ` (${t.installment_number}/${t.installment_total})` : '';
+                text += `${icon} *${t.description}*${installmentLabel}\n   R$ ${Number(t.amount).toFixed(2)} | ${t.category} | ${date}\n\n`;
             }
             bot.sendMessage(chatId, text, { parse_mode: 'Markdown' });
+            return;
+        }
+        // Installment selection
+        if (data.startsWith('inst_')) {
+            const state = getState(chatId);
+            if (state.step !== 'tx_installments')
+                return;
+            const installments = parseInt(data.replace('inst_', ''));
+            const user = await User_1.UserModel.findByTelegramId(telegramId);
+            if (!user) {
+                bot.sendMessage(chatId, '⚠️ Sessão expirada. Use /start.');
+                resetState(chatId);
+                return;
+            }
+            const { type, category, amount, date, description } = state.data;
+            const icon = type === 'income' ? '💰' : '💸';
+            const typeLabel = type === 'income' ? 'Entrada' : 'Saída';
+            const dateFormatted = date.split('-').reverse().join('/');
+            if (installments > 1) {
+                await Transaction_1.TransactionModel.createInstallments({
+                    users_id: user.id,
+                    description,
+                    totalAmount: amount,
+                    type,
+                    category,
+                    date,
+                    installments,
+                });
+                const parcelValue = (amount / installments).toFixed(2);
+                resetState(chatId);
+                bot.sendMessage(chatId, `✅ *Parcelamento registrado!*\n\n` +
+                    `${icon} *${typeLabel}*\n` +
+                    `📝 ${description}\n` +
+                    `💲 ${installments}x de R$ ${parcelValue} (Total: R$ ${amount.toFixed(2)})\n` +
+                    `📂 ${category}\n` +
+                    `📅 Início: ${dateFormatted}\n\n` +
+                    `Use /menu para continuar.`, { parse_mode: 'Markdown' });
+            }
+            else {
+                await Transaction_1.TransactionModel.create({
+                    users_id: user.id,
+                    description,
+                    amount,
+                    type,
+                    category,
+                    date,
+                });
+                resetState(chatId);
+                bot.sendMessage(chatId, `✅ *Transação registrada com sucesso!*\n\n` +
+                    `${icon} *${typeLabel}*\n` +
+                    `📝 ${description}\n` +
+                    `💲 R$ ${amount.toFixed(2)}\n` +
+                    `📂 ${category}\n` +
+                    `📅 ${dateFormatted}\n\n` +
+                    `Use /menu para continuar.`, { parse_mode: 'Markdown' });
+            }
             return;
         }
     });
@@ -326,32 +383,27 @@ function initTelegramBot(token) {
         }
         // ===== TRANSACTION: DESCRIPTION =====
         if (state.step === 'tx_description') {
-            const user = await User_1.UserModel.findByTelegramId(telegramId);
-            if (!user) {
-                bot.sendMessage(chatId, '⚠️ Sessão expirada. Use /start.');
-                resetState(chatId);
-                return;
-            }
-            const { type, category, amount, date } = state.data;
-            await Transaction_1.TransactionModel.create({
-                users_id: user.id,
-                description: text,
-                amount,
-                type,
-                category,
-                date,
-            });
-            const icon = type === 'income' ? '💰' : '💸';
-            const typeLabel = type === 'income' ? 'Entrada' : 'Saída';
-            const dateFormatted = date.split('-').reverse().join('/');
-            resetState(chatId);
-            bot.sendMessage(chatId, `✅ *Transação registrada com sucesso!*\n\n` +
-                `${icon} *${typeLabel}*\n` +
-                `📝 ${text}\n` +
-                `💲 R$ ${amount.toFixed(2)}\n` +
-                `📂 ${category}\n` +
-                `📅 ${dateFormatted}\n\n` +
-                `Use /menu para continuar.`, { parse_mode: 'Markdown' });
+            state.data.description = text;
+            setState(chatId, 'tx_installments', state.data);
+            const keyboard = [
+                [{ text: '💵 À Vista', callback_data: 'inst_1' }],
+                [
+                    { text: '2x', callback_data: 'inst_2' },
+                    { text: '3x', callback_data: 'inst_3' },
+                    { text: '4x', callback_data: 'inst_4' },
+                ],
+                [
+                    { text: '5x', callback_data: 'inst_5' },
+                    { text: '6x', callback_data: 'inst_6' },
+                    { text: '7x', callback_data: 'inst_7' },
+                ],
+                [
+                    { text: '8x', callback_data: 'inst_8' },
+                    { text: '10x', callback_data: 'inst_10' },
+                    { text: '12x', callback_data: 'inst_12' },
+                ],
+            ];
+            bot.sendMessage(chatId, `📝 Descrição: *${text}*\n\n📦 Quantas *parcelas*?`, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: keyboard } });
             return;
         }
     });

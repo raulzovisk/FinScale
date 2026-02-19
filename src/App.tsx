@@ -5,26 +5,32 @@ import { Dashboard } from './components/Dashboard';
 import { TransactionForm } from './components/TransactionForm';
 import { Analytics } from './components/Analytics';
 import { RecurrentCharges } from './components/RecurrentCharges';
+import { Cards } from './components/Cards';
 import { Register } from './components/Auth';
 import { api } from './services/api';
-import { Transaction } from './types';
+import { Transaction, Card } from './types';
 
 const App: React.FC = () => {
     // Verificar se já tem token salvo ao carregar
     const [isAuthenticated, setIsAuthenticated] = useState(() => {
         return !!localStorage.getItem('authToken');
     });
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'recurrents' | 'analytics'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'transactions' | 'cards' | 'recurrents' | 'analytics'>('dashboard');
     const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [cards, setCards] = useState<Card[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const fetchData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const data = await api.getTransactions();
-            setTransactions(data);
+            const [txData, cardData] = await Promise.all([
+                api.getTransactions(),
+                api.getCards(),
+            ]);
+            setTransactions(txData);
+            setCards(cardData);
         } catch (error) {
-            console.error('Erro ao carregar transações:', error);
+            console.error('Erro ao carregar dados:', error);
         }
         setIsLoading(false);
     }, []);
@@ -76,13 +82,17 @@ const App: React.FC = () => {
                 {activeTab === 'dashboard' && (
                     <Dashboard
                         transactions={transactions}
+                        cards={cards}
                         onDelete={handleDeleteTransaction}
                         onNavigate={() => setActiveTab('transactions')}
                         onLogout={handleLogout}
                     />
                 )}
                 {activeTab === 'transactions' && (
-                    <TransactionForm onSubmit={handleAddTransaction} />
+                    <TransactionForm onSubmit={handleAddTransaction} cards={cards} />
+                )}
+                {activeTab === 'cards' && (
+                    <Cards cards={cards} onCardsChange={fetchData} />
                 )}
                 {activeTab === 'recurrents' && (
                     <RecurrentCharges />

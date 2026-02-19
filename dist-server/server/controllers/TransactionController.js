@@ -15,7 +15,7 @@ exports.TransactionController = {
     },
     async store(req, res) {
         try {
-            const { description, amount, type, category, date } = req.body;
+            const { description, amount, type, category, date, installments } = req.body;
             if (!description || amount == null || !type || !category || !date) {
                 res.status(400).json({ message: 'Todos os campos são obrigatórios.' });
                 return;
@@ -24,15 +24,30 @@ exports.TransactionController = {
                 res.status(400).json({ message: 'Tipo deve ser "income" ou "expense".' });
                 return;
             }
-            const transaction = await Transaction_1.TransactionModel.create({
-                users_id: req.userId,
-                description,
-                amount: parseFloat(amount),
-                type,
-                category,
-                date,
-            });
-            res.status(201).json(transaction);
+            const numInstallments = parseInt(installments) || 1;
+            if (numInstallments > 1) {
+                const transactions = await Transaction_1.TransactionModel.createInstallments({
+                    users_id: req.userId,
+                    description,
+                    totalAmount: parseFloat(amount),
+                    type,
+                    category,
+                    date,
+                    installments: numInstallments,
+                });
+                res.status(201).json(transactions);
+            }
+            else {
+                const transaction = await Transaction_1.TransactionModel.create({
+                    users_id: req.userId,
+                    description,
+                    amount: parseFloat(amount),
+                    type,
+                    category,
+                    date,
+                });
+                res.status(201).json(transaction);
+            }
         }
         catch (error) {
             console.error('Erro ao criar transação:', error);

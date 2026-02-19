@@ -8,7 +8,8 @@ import {
     Clock,
     Settings,
     Wallet,
-    LogOut
+    LogOut,
+    CreditCard
 } from 'lucide-react';
 
 interface LayoutProps {
@@ -22,6 +23,7 @@ export const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTa
     const menuItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { id: 'transactions', label: 'Nova Transação', icon: PlusCircle },
+        { id: 'cards', label: 'Cartões', icon: CreditCard },
         { id: 'recurrents', label: 'Recorrentes', icon: Clock },
         { id: 'analytics', label: 'Análises', icon: BarChart3 },
     ];

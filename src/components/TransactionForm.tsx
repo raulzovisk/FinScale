@@ -1,18 +1,21 @@
 
 import React, { useState } from 'react';
-import { Transaction, TransactionType } from '../types';
-import { DollarSign, Tag, Calendar, FileText } from 'lucide-react';
+import { Transaction, TransactionType, Card } from '../types';
+import { DollarSign, Tag, Calendar, FileText, CreditCard } from 'lucide-react';
 
 interface TransactionFormProps {
-    onSubmit: (data: Omit<Transaction, 'id' | 'created_at'>) => void;
+    onSubmit: (data: Omit<Transaction, 'id' | 'created_at'> & { installments?: number; card_id?: number }) => void;
+    cards?: Card[];
 }
 
-export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) => {
+export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit, cards = [] }) => {
     const [description, setDescription] = useState('');
     const [amount, setAmount] = useState('');
     const [type, setType] = useState<TransactionType>('expense');
     const [category, setCategory] = useState('');
     const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [installments, setInstallments] = useState(1);
+    const [cardId, setCardId] = useState<string>('');
 
     const categories = [
         'Alimentação', 'Transporte', 'Lazer',
@@ -28,12 +31,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) =>
             type,
             category,
             date,
+            ...(installments > 1 ? { installments } : {}),
+            ...(cardId ? { card_id: parseInt(cardId) } : {}),
         });
 
         setDescription('');
         setAmount('');
         setCategory('');
         setDate(new Date().toISOString().split('T')[0]);
+        setInstallments(1);
+        setCardId('');
     };
 
     return (
@@ -108,6 +115,32 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) =>
                     </div>
                 </div>
 
+                {type === 'expense' && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            📦 Parcelas
+                        </label>
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="range"
+                                min="1"
+                                max="24"
+                                value={installments}
+                                onChange={(e) => setInstallments(parseInt(e.target.value))}
+                                className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                            />
+                            <span className="min-w-[60px] text-center px-3 py-2 bg-indigo-50 text-indigo-700 rounded-xl font-bold text-sm">
+                                {installments === 1 ? 'À vista' : `${installments}x`}
+                            </span>
+                        </div>
+                        {installments > 1 && (
+                            <p className="text-xs text-gray-500">
+                                {installments}x de R$ {(parseFloat(amount || '0') / installments).toFixed(2)} — mesmo dia nos próximos meses
+                            </p>
+                        )}
+                    </div>
+                )}
+
                 <div className="space-y-2">
                     <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
                         <Tag size={16} /> Categoria
@@ -124,6 +157,27 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({ onSubmit }) =>
                         ))}
                     </select>
                 </div>
+
+                {/* Card selector (optional) */}
+                {cards.length > 0 && (
+                    <div className="space-y-2">
+                        <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            <CreditCard size={16} /> Cartão <span className="text-xs font-normal text-gray-400">(opcional)</span>
+                        </label>
+                        <select
+                            value={cardId}
+                            onChange={(e) => setCardId(e.target.value)}
+                            className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all appearance-none"
+                        >
+                            <option value="">Sem cartão</option>
+                            {cards.map((card) => (
+                                <option key={card.id} value={card.id}>
+                                    {card.name}{card.last_digits ? ` •••• ${card.last_digits}` : ''}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                )}
 
                 <button
                     type="submit"

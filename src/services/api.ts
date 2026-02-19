@@ -1,4 +1,4 @@
-import { Transaction, SummaryData, RecurrentCharge } from '../types';
+import { Transaction, SummaryData, RecurrentCharge, Card } from '../types';
 
 const API_BASE = import.meta.env.VITE_API_URL || '/api';
 
@@ -41,8 +41,8 @@ export const api = {
         return request<Transaction[]>('/transactions');
     },
 
-    async addTransaction(data: Omit<Transaction, 'id' | 'created_at'>): Promise<Transaction> {
-        return request<Transaction>('/transactions', {
+    async addTransaction(data: Omit<Transaction, 'id' | 'created_at'> & { installments?: number }): Promise<Transaction | Transaction[]> {
+        return request<Transaction | Transaction[]>('/transactions', {
             method: 'POST',
             body: JSON.stringify(data),
         });
@@ -87,5 +87,27 @@ export const api = {
             method: 'POST',
         });
     },
-};
 
+    // Cartões
+    async getCards(): Promise<Card[]> {
+        return request<Card[]>('/cards');
+    },
+
+    async addCard(data: { name: string; last_digits?: string; color?: string; initial_balance?: number }): Promise<Card> {
+        return request<Card>('/cards', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async updateCard(id: number, data: { name?: string; last_digits?: string; color?: string; initial_balance?: number }): Promise<Card> {
+        return request<Card>(`/cards/${id}`, {
+            method: 'PUT',
+            body: JSON.stringify(data),
+        });
+    },
+
+    async deleteCard(id: number): Promise<void> {
+        await request(`/cards/${id}`, { method: 'DELETE' });
+    },
+};

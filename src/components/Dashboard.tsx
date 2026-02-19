@@ -9,17 +9,18 @@ import {
     Search,
     ChevronRight
 } from 'lucide-react';
-import { Transaction } from '../types';
+import { Transaction, Card } from '../types';
 import { getFinancialAdvice } from '../services/geminiService';
 
 interface DashboardProps {
     transactions: Transaction[];
+    cards: Card[];
     onDelete: (id: number) => void;
     onNavigate: () => void;
     onLogout: () => void;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ transactions, onDelete, onNavigate, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ transactions, cards, onDelete, onNavigate, onLogout }) => {
     const [advice, setAdvice] = useState<string | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -114,6 +115,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, onDelete, on
                 )}
             </div>
 
+            {/* Cards Section */}
+            {cards.length > 0 && (
+                <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+                    <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        💳 Meus Cartões
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {cards.map((card) => (
+                            <div
+                                key={card.id}
+                                className="rounded-xl p-4 text-white relative overflow-hidden"
+                                style={{ background: `linear-gradient(135deg, ${card.color}, ${card.color}cc)` }}
+                            >
+                                <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -translate-y-4 translate-x-4" />
+                                <p className="font-bold text-sm">{card.name}</p>
+                                {card.last_digits && (
+                                    <p className="text-xs opacity-70">•••• {card.last_digits}</p>
+                                )}
+                                <p className="text-lg font-black mt-2">
+                                    R$ {Number(card.current_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                                </p>
+                                <p className="text-[10px] opacity-60 mt-1">Fundo: R$ {Number(card.initial_balance).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+
             {/* Recent Transactions */}
             <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -136,6 +166,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, onDelete, on
                             <tr>
                                 <th className="px-6 py-4">Descrição</th>
                                 <th className="px-6 py-4">Categoria</th>
+                                <th className="px-6 py-4">Cartão</th>
                                 <th className="px-6 py-4">Data</th>
                                 <th className="px-6 py-4 text-right">Valor</th>
                                 <th className="px-6 py-4">Ações</th>
@@ -144,9 +175,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, onDelete, on
                         <tbody className="divide-y divide-gray-100">
                             {filteredTransactions.map((t) => (
                                 <tr key={t.id} className="hover:bg-indigo-50/30 transition-colors group">
-                                    <td className="px-6 py-4 font-medium text-gray-800">{t.description}</td>
+                                    <td className="px-6 py-4 font-medium text-gray-800">
+                                        {t.description}
+                                        {t.installment_total && t.installment_total > 1 && (
+                                            <span className="ml-2 px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full text-[10px] font-bold">
+                                                {t.installment_number}/{t.installment_total}
+                                            </span>
+                                        )}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs capitalize">{t.category}</span>
+                                    </td>
+                                    <td className="px-6 py-4 text-sm text-gray-500">
+                                        {t.card_name ? (
+                                            <span className="px-2 py-1 bg-indigo-50 text-indigo-600 rounded text-xs font-medium">💳 {t.card_name}</span>
+                                        ) : (
+                                            <span className="text-gray-300">—</span>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 text-gray-500 text-sm">{new Date(t.date).toLocaleDateString('pt-BR')}</td>
                                     <td className={`px-6 py-4 text-right font-bold ${t.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
@@ -164,7 +209,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ transactions, onDelete, on
                             ))}
                             {filteredTransactions.length === 0 && (
                                 <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                    <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
                                         Nenhuma transação encontrada.
                                     </td>
                                 </tr>
