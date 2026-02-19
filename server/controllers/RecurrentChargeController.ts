@@ -15,7 +15,7 @@ export const RecurrentChargeController = {
 
     async store(req: AuthRequest, res: Response): Promise<void> {
         try {
-            const { description, amount, frequency, nextDueDate, category } = req.body;
+            const { description, amount, frequency, nextDueDate, category, type, card_id } = req.body;
 
             if (!description || amount == null || !frequency || !nextDueDate) {
                 res.status(400).json({ message: 'Campos obrigatórios: description, amount, frequency, nextDueDate.' });
@@ -32,9 +32,11 @@ export const RecurrentChargeController = {
                 users_id: req.userId!,
                 description,
                 amount: parseFloat(amount),
+                type: type || 'expense',
                 frequency,
                 next_due_date: nextDueDate,
                 category: category || 'recorrente',
+                card_id: card_id || null,
             });
 
             res.status(201).json(charge);

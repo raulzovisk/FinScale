@@ -6,9 +6,11 @@ export interface RecurrentChargeRow extends RowDataPacket {
     users_id: number;
     description: string;
     amount: number;
+    type: 'income' | 'expense';
     frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
     next_due_date: string;
     category: string;
+    card_id: number | null;
     is_active: boolean;
     created_at: string;
 }
@@ -26,13 +28,15 @@ export const RecurrentChargeModel = {
         users_id: number;
         description: string;
         amount: number;
+        type: 'income' | 'expense';
         frequency: 'daily' | 'weekly' | 'monthly' | 'yearly';
         next_due_date: string;
         category: string;
+        card_id?: number | null;
     }): Promise<RecurrentChargeRow> {
         const [result] = await pool.query<ResultSetHeader>(
-            'INSERT INTO recurrent_charges (users_id, description, amount, frequency, next_due_date, category) VALUES (?, ?, ?, ?, ?, ?)',
-            [data.users_id, data.description, data.amount, data.frequency, data.next_due_date, data.category]
+            'INSERT INTO recurrent_charges (users_id, description, amount, type, frequency, next_due_date, category, card_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [data.users_id, data.description, data.amount, data.type, data.frequency, data.next_due_date, data.category, data.card_id || null]
         );
 
         const [rows] = await pool.query<RecurrentChargeRow[]>(

@@ -29,7 +29,9 @@ CREATE TABLE IF NOT EXISTS `transactions` (
   `installment_id` VARCHAR(36) DEFAULT NULL,
   `installment_number` INT DEFAULT NULL,
   `installment_total` INT DEFAULT NULL,
-  FOREIGN KEY (`users_id`) REFERENCES `users`(`id`)
+  `card_id` INT DEFAULT NULL,
+  FOREIGN KEY (`users_id`) REFERENCES `users`(`id`),
+  FOREIGN KEY (`card_id`) REFERENCES `cards`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `recurrent_charges` (
@@ -37,12 +39,15 @@ CREATE TABLE IF NOT EXISTS `recurrent_charges` (
   `users_id` INT NOT NULL,
   `description` VARCHAR(255) NOT NULL,
   `amount` DECIMAL(10, 2) NOT NULL,
+  `type` ENUM('income', 'expense') NOT NULL DEFAULT 'expense',
   `frequency` ENUM('daily', 'weekly', 'monthly', 'yearly') NOT NULL DEFAULT 'monthly',
   `next_due_date` DATE NOT NULL,
   `category` VARCHAR(100) NOT NULL DEFAULT 'recorrente',
+  `card_id` INT DEFAULT NULL,
   `is_active` BOOLEAN NOT NULL DEFAULT TRUE,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (`users_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
+  FOREIGN KEY (`users_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY (`card_id`) REFERENCES `cards`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `cards` (
@@ -56,8 +61,6 @@ CREATE TABLE IF NOT EXISTS `cards` (
   FOREIGN KEY (`users_id`) REFERENCES `users`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ALTER TABLE `transactions` ADD COLUMN `card_id` INT DEFAULT NULL;
--- ALTER TABLE `transactions` ADD FOREIGN KEY (`card_id`) REFERENCES `cards`(`id`) ON DELETE SET NULL;
 
 INSERT INTO `categories` (`name`, `color`, `icon`) VALUES
   ('Alimentação', '#ef4444', 'utensils'),

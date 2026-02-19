@@ -53,9 +53,10 @@ export const RecurrenceService = {
                     users_id: charge.users_id,
                     description: `🔄 ${charge.description}`,
                     amount: charge.amount,
-                    type: 'expense',
+                    type: charge.type || 'expense',
                     category: charge.category || 'recorrente',
                     date: nextDate,
+                    card_id: charge.card_id || undefined,
                 });
 
                 totalCreated++;

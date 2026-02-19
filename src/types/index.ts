@@ -42,10 +42,13 @@ export interface RecurrentCharge {
     id: number;
     description: string;
     amount: number;
+    type: TransactionType;
     frequency: RecurrenceFrequency;
     nextDueDate: string;
     next_due_date?: string;
     category: string;
+    card_id?: number | null;
+    card_name?: string | null;
     isActive: boolean;
     is_active?: boolean;
 }

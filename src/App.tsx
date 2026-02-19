@@ -95,7 +95,7 @@ const App: React.FC = () => {
                     <Cards cards={cards} onCardsChange={fetchData} />
                 )}
                 {activeTab === 'recurrents' && (
-                    <RecurrentCharges />
+                    <RecurrentCharges cards={cards} onDataChange={fetchData} />
                 )}
                 {activeTab === 'analytics' && (
                     <Analytics transactions={transactions} />
